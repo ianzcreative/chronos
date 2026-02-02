@@ -2,6 +2,7 @@
 
 Unlike standard logging tools, Chronos provides a beautiful, visual timeline of your data. It enables administrators to view exactly **who** changed **what** and **when**, with a stunning side-by-side diff view (Before vs. After) directly within your resource dashboard.
 
+![Alt text](https://creator.ianstudios.id/storage/docs-images/01KGER7CRV8RDRJD5MSM05ZB1G.png)
 
 ## ✨ Features
 
@@ -11,6 +12,14 @@ Unlike standard logging tools, Chronos provides a beautiful, visual timeline of 
 * **Secure by Default:** Automatically excludes sensitive fields like passwords and API tokens.
 * **User Attribution:** Tracks which user (and IP address) performed the action.
 * **Dark Mode Support:** Fully integrated with Filament's native theme.
+
+## 💻 Environment
+
+Chronos is built to be robust and future-proof.
+
+**PHP**: 8.1 or higher
+**Laravel**: 10.x / 11.x / 12.x
+**Filament**: 3.x / 4.x
 
 ## 📦 Installation
 
