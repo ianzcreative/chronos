@@ -1,173 +1,281 @@
 @use('Illuminate\Support\Str')
+@use('Filament\Support\Facades\FilamentColor')
 
-<div class="audit-timeline" style="--bg-card: white; --border-card: #e5e7eb; --shadow-card: 0 1px 2px rgba(0,0,0,0.05);
-    --bg-header: rgba(249,250,251,0.5); --border-header: #f3f4f6;
-    --text-primary: #111827; --text-secondary: #4b5563; --text-muted: #6b7280; --text-placeholder: #9ca3af; --text-empty: #d1d5db;
-    --avatar-from: #f3f4f6; --avatar-to: #e5e7eb; --avatar-text: #374151; --avatar-border: white;
-    --timeline: #e5e7eb;">
+<style>
+    .fi-audit-timeline .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
 
-    <style>
-        .audit-timeline {
-            position: relative;
-            margin-left: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-        }
+    .fi-audit-timeline .timeline-item:last-child {
+        padding-bottom: 0;
+    }
 
-        .audit-timeline::before {
-            content: '';
-            position: absolute;
-            left: -0.75rem;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background-color: var(--timeline);
-        }
+    .fi-audit-timeline .timeline-connector {
+        position: absolute;
+        left: 0.9375rem;
+        top: 2.5rem;
+        bottom: 0;
+        width: 2px;
+    }
 
-        .dark .audit-timeline {
-            --bg-card: #111827;
-            --border-card: #374151;
-            --shadow-card: 0 1px 3px rgba(0,0,0,0.3);
-            --bg-header: rgba(31,41,55,0.5);
-            --border-header: #374151;
-            --text-primary: #f3f4f6;
-            --text-secondary: #9ca3af;
-            --text-muted: #9ca3af;
-            --text-placeholder: #9ca3af;
-            --text-empty: #4b5563;
-            --avatar-from: #374151;
-            --avatar-to: #1f2937;
-            --avatar-text: #d1d5db;
-            --avatar-border: #111827;
-            --timeline: #374151;
-        }
-    </style>
+    .fi-audit-timeline .fi-section-content-ctn,
+    .fi-audit-timeline .fi-ta-content,
+    .fi-audit-timeline .fi-ta-content-ctn,
+    .fi-audit-timeline .fi-ta-content > div {
+        overflow-y: visible !important;
+        max-height: none !important;
+    }
 
+    .fi-audit-timeline .fi-section-content-ctn * {
+        scrollbar-gutter: auto;
+    }
+</style>
+
+<div class="fi-audit-timeline space-y-0">
     @forelse($audits as $audit)
-        <div style="position: relative;">
-            <div style="position: absolute; left: -1.25rem; top: 0.75rem; width: 1.5rem; height: 1.5rem; border-radius: 9999px; border: 4px solid var(--avatar-border); display: flex; align-items: center; justify-content: center;
-                background-color: {{ $audit->event === 'created' ? '#10b981' : ($audit->event === 'deleted' ? '#ef4444' : '#3b82f6') }};">
-            </div>
+        @php
+            $old = $audit->old_values ?? [];
+            $new = $audit->new_values ?? [];
+            $keys = array_values(array_unique(array_merge(array_keys($old), array_keys($new))));
 
-            <div style="background-color: var(--bg-card); border-radius: 0.75rem; border: 1px solid var(--border-card); box-shadow: var(--shadow-card); overflow: hidden; transition: box-shadow 0.2s ease;">
-                
-                <div style="padding: 0.75rem 1rem; background-color: var(--bg-header); border-bottom: 1px solid var(--border-header); display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        @if($audit->user)
-                            <div style="width: 2rem; height: 2rem; border-radius: 9999px; background: linear-gradient(to bottom right, var(--avatar-from), var(--avatar-to)); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; color: var(--avatar-text); border: 2px solid var(--avatar-border);">
-                                {{ substr($audit->user->name ?? 'U', 0, 1) }}
-                            </div>
-                            <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary); line-height: 1.1;">
-                                    {{ $audit->user->name }}
-                                </span>
-                                <span style="font-size: 0.625rem; color: var(--text-muted); font-weight: 500;">
-                                    {{ $audit->ip_address ?? 'IP Unknown' }}
-                                </span>
-                            </div>
-                        @else
-                            <div style="width: 2rem; height: 2rem; border-radius: 9999px; background-color: var(--avatar-from); display: flex; align-items: center; justify-content: center;">
-                                <x-heroicon-m-server style="width: 1rem; height: 1rem; color: var(--text-muted);"/>
-                            </div>
-                            <span style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary);">System Bot</span>
-                        @endif
-                    </div>
+            $event = $audit->event;
+            
+            $color = match ($event) {
+                'created' => 'success',
+                'deleted' => 'danger',
+                'restored' => 'warning',
+                default => 'primary',
+            };
+            
+            $icon = match ($event) {
+                'created' => 'heroicon-o-plus-circle',
+                'deleted' => 'heroicon-o-trash',
+                'restored' => 'heroicon-o-arrow-path',
+                default => 'heroicon-o-pencil-square',
+            };
+            
+            $iconBgClass = match ($event) {
+                'created' => 'bg-success-500 dark:bg-success-600',
+                'deleted' => 'bg-danger-500 dark:bg-danger-600',
+                'restored' => 'bg-warning-500 dark:bg-warning-600',
+                default => 'bg-primary-500 dark:bg-primary-600',
+            };
+            
+            $connectorClass = match ($event) {
+                'created' => 'bg-success-500 dark:bg-success-600',
+                'deleted' => 'bg-danger-500 dark:bg-danger-600',
+                'restored' => 'bg-warning-500 dark:bg-warning-600',
+                default => 'bg-primary-500 dark:bg-primary-600',
+            };
+        @endphp
 
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.625rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid;
-                            {{ $audit->event === 'created' ? 'background-color: #ecfdf5; color: #065f46; border-color: #d1fae5;' :
-                              ($audit->event === 'deleted' ? 'background-color: #fef2f2; color: #991b1b; border-color: #fecaca;' :
-                              'background-color: #eff6ff; color: #1e40af; border-color: #bfdbfe;') }}">
-                            {{ $audit->event }}
-                        </span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted); font-family: ui-monospace, monospace; font-weight: 500;">
-                            {{ $audit->created_at->format('d M H:i') }}
-                        </span>
+        <div class="timeline-item">
+
+            {{-- Connector Line --}}
+            @if (!$loop->last)
+                <div class="timeline-connector {{ $connectorClass }}"></div>
+            @endif
+
+            <div class="flex gap-4">
+
+                {{-- MARK: Timeline Icon Dot --}}
+                <div class="flex-shrink-0">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full {{ $iconBgClass }}">
+                        <x-filament::icon :icon="$icon" class="w-4 h-4 text-white" />
                     </div>
                 </div>
 
-                @php
-                    $old = $audit->old_values ?? [];
-                    $new = $audit->new_values ?? [];
-                    $keys = array_unique(array_merge(array_keys($old), array_keys($new)));
-                @endphp
+                {{-- MARK: Card Content --}}
+                <div class="flex-1 min-w-0" x-data="{ expanded: true }">
 
-                <div style="padding: 1rem; font-size: 0.875rem; color: var(--text-primary);">
-                    @if(empty($keys))
-                        <div style="text-align: center; color: var(--text-placeholder); font-style: italic; font-size: 0.75rem; padding: 0.5rem 0;">
-                            No changes detected explicitly.
-                        </div>
-                    @else
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-header);">
-                            <h4 style="font-size: 0.75rem; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Original</h4>
-                            <h4 style="font-size: 0.75rem; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Changes</h4>
-                        </div>
-
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                            @foreach($keys as $key)
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 0.25rem 0.5rem; margin: 0 -0.5rem; border-radius: 0.375rem; transition: background-color 0.15s;">
-                                    <div style="display: flex; flex-direction: column;">
-                                        <span style="font-size: 0.625rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.125rem;">
-                                            {{ Str::headline($key) }}
-                                        </span>
-                                        
-                                        @if(array_key_exists($key, $old))
-                                            <div style="font-family: ui-monospace, monospace; font-size: 0.75rem; color: #dc2626; background-color: rgba(239,68,68,0.05); padding: 0.125rem 0.375rem; border-radius: 0.25rem; width: fit-content; word-break: break-all; border: 1px solid #fee2e2;">
-                                                @if(is_array($old[$key]))
-                                                    {{ json_encode($old[$key]) }}
-                                                @elseif(is_null($old[$key]))
-                                                    <span style="font-style: italic; color: var(--text-placeholder); opacity: 0.8;">null</span>
-                                                @elseif($old[$key] === '')
-                                                    <span style="font-style: italic; color: var(--text-placeholder); opacity: 0.8;">empty</span>
-                                                @else
-                                                    {{ $old[$key] }}
-                                                @endif
-                                            </div>
+                    <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+                        
+                        {{-- MARK: Header --}}
+                        <div class="fi-section-header flex items-center justify-between gap-4 border-b border-gray-200 px-4 py-3 dark:border-white/10">
+                            
+                            <div class="flex items-center gap-3 min-w-0">
+                                @if ($audit->user)
+                                    {{-- User avatar --}}
+                                    <div class="fi-avatar fi-avatar-sm overflow-hidden rounded-full">
+                                        @if ($audit->user?->getFilamentAvatarUrl())
+                                            <img src="{{ $audit->user->getFilamentAvatarUrl() }}"
+                                                alt="{{ $audit->user->name }}" class="h-full w-full object-cover" />
                                         @else
-                                            <span style="color: var(--text-empty); font-size: 0.875rem;">—</span>
+                                            <div
+                                                class="fi-avatar-fallback flex h-8 w-8 items-center justify-center text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                                                {{ mb_substr($audit->user->name ?? 'U', 0, 1) }}
+                                            </div>
                                         @endif
                                     </div>
 
-                                    <div style="position: relative; display: flex; flex-direction: column;">
-                                        <div style="position: absolute; left: -1.25rem; top: 0.9rem; color: var(--text-placeholder); opacity: 0.8;">
-                                            <x-heroicon-m-arrow-right style="width: 0.75rem; height: 0.75rem;"/>
+                                    <div class="leading-tight min-w-0">
+                                        <div
+                                            class="fi-section-header-heading text-sm font-semibold text-gray-950 dark:text-white truncate">
+                                            {{ $audit->user->name }}
+                                        </div>
+                                        <div class="fi-section-description text-xs text-gray-500 dark:text-gray-400">
+                                            {{ $audit->ip_address ?? 'IP Unknown' }}
+                                        </div>
+                                    </div>
+                                @else
+                                    {{-- System icon --}}
+                                    <div class="fi-avatar fi-avatar-sm overflow-hidden rounded-full">
+                                        <div
+                                            class="fi-avatar-fallback flex h-8 w-8 items-center justify-center bg-gray-100 dark:bg-gray-800">
+                                            <x-filament::icon icon="heroicon-m-server"
+                                                class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                        </div>
+                                    </div>
+
+                                    <div class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                        System Bot
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="flex items-center gap-3 shrink-0">
+                                {{-- MARK: Badge --}}
+                                <x-filament::badge :color="$color" size="xs">
+                                    {{ Str::upper($audit->event) }}
+                                </x-filament::badge>
+
+                                <time datetime="{{ $audit->created_at->toIso8601String() }}"
+                                    class="fi-badge-size-xs text-xs font-medium text-gray-500 dark:text-gray-400 tabular-nums">
+                                    {{ $audit->created_at->format('M d, Y g:i A') }}
+                                </time>
+
+                                {{-- Collapse Toggle --}}
+                                <button type="button" @click="expanded = !expanded"
+                                    class="flex items-center justify-center w-6 h-6 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition">
+                                    <x-filament::icon icon="heroicon-m-chevron-down"
+                                        class="w-4 h-4 transition-transform duration-200" ::class="{ 'rotate-180': expanded }" />
+                                </button>
+                            </div>
+
+                        </div>
+
+                        {{-- MARK: Inside Body --}}
+                        <div x-show="expanded" x-collapse>
+                            <div class="fi-section-content-ctn px-4 py-4">
+
+                                @if (empty($keys))
+                                    <div class="py-2 text-center">
+                                        <p class="text-xs italic text-gray-400 dark:text-gray-500">
+                                            No changes detected.
+                                        </p>
+                                    </div>
+
+                                @else
+
+                                    {{-- MARK: Table Structure --}}
+                                    <div class="fi-ta-content">
+
+                                        {{-- Header --}}
+                                        <div
+                                            class="fi-ta-header-ctn grid grid-cols-2 gap-6 border-b border-gray-200 pb-2 dark:border-white/10">
+                                            <div
+                                                class="fi-ta-header-cell text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                Original
+                                            </div>
+                                            <div
+                                                class="fi-ta-header-cell text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                Changes
+                                            </div>
                                         </div>
 
-                                        <span style="font-size: 0.625rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.125rem;">
-                                            {{ Str::headline($key) }}
-                                        </span>
+                                        {{-- Rows --}}
+                                        <div class="fi-ta-content divide-y divide-gray-200 dark:divide-white/5">
+                                            @foreach ($keys as $key)
+                                                <div class="fi-ta-row grid grid-cols-2 gap-6 py-3 transition hover:bg-gray-50 dark:hover:bg-white/5">
 
-                                        @if(array_key_exists($key, $new))
-                                            <div style="font-family: ui-monospace, monospace; font-size: 0.75rem; color: #059669; background-color: rgba(16,185,129,0.05); padding: 0.125rem 0.375rem; border-radius: 0.25rem; width: fit-content; word-break: break-all; border: 1px solid #d1fae5;">
-                                                @if(is_array($new[$key]))
-                                                    {{ json_encode($new[$key]) }}
-                                                @elseif(is_null($new[$key]))
-                                                    <span style="font-style: italic; color: var(--text-placeholder); opacity: 0.8;">null</span>
-                                                @elseif($new[$key] === '')
-                                                    <span style="font-style: italic; color: var(--text-placeholder); opacity: 0.8;">empty</span>
-                                                @else
-                                                    {{ $new[$key] }}
-                                                @endif
-                                            </div>
-                                        @else
-                                            <span style="color: var(--text-empty); font-size: 0.875rem;">—</span>
-                                        @endif
+                                                    {{-- Old value --}}
+                                                    <div class="fi-ta-cell">
+                                                        <div class="fi-ta-text-item-label mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                            {{ Str::headline($key) }}
+                                                        </div>
+
+                                                        @if (array_key_exists($key, $old))
+                                                            <x-filament::badge color="gray" size="sm">
+                                                                @if (is_array($old[$key]))
+                                                                    {{ json_encode($old[$key]) }}
+                                                                @elseif(is_null($old[$key]))
+                                                                    <span class="italic opacity-60">null</span>
+                                                                @elseif($old[$key] === '')
+                                                                    <span class="italic opacity-60">empty</span>
+                                                                @else
+                                                                    {{ $old[$key] }}
+                                                                @endif
+                                                            </x-filament::badge>
+                                                        @else
+                                                            <span class="text-gray-300 dark:text-gray-700">—</span>
+                                                        @endif
+                                                    </div>
+
+                                                    {{-- New value --}}
+                                                    <div class="fi-ta-cell relative">
+                                                        {{-- Arrow indicator - centered vertically --}}
+                                                        <div class="absolute -left-5 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-700">
+                                                            <x-filament::icon icon="heroicon-m-arrow-right" class="h-4 w-4" />
+                                                        </div>
+
+                                                        <div class="fi-ta-text-item-label mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                            {{ Str::headline($key) }}
+                                                        </div>
+
+                                                        @if (array_key_exists($key, $new))
+                                                            <x-filament::badge color="success" size="sm">
+                                                                @if (is_array($new[$key]))
+                                                                    {{ json_encode($new[$key]) }}
+                                                                @elseif(is_null($new[$key]))
+                                                                    <span class="italic opacity-60">null</span>
+                                                                @elseif($new[$key] === '')
+                                                                    <span class="italic opacity-60">empty</span>
+                                                                @else
+                                                                    {{ $new[$key] }}
+                                                                @endif
+                                                            </x-filament::badge>
+                                                        @else
+                                                            <x-filament::badge color="danger" size="sm">
+                                                                <span>Deleted</span>
+                                                            </x-filament::badge>
+                                                        @endif
+                                                    </div>
+
+                                                </div>
+                                            @endforeach
+                                        </div>
+
                                     </div>
-                                </div>
-                            @endforeach
+                                @endif
+                            </div>
                         </div>
-                    @endif
+
+                    </div>
                 </div>
+
             </div>
         </div>
+
     @empty
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 0; text-align: center; color: var(--text-muted);">
-            <div style="width: 3rem; height: 3rem; border-radius: 9999px; background-color: var(--avatar-from); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
-                <x-heroicon-o-clock style="width: 1.5rem; height: 1.5rem; color: var(--text-placeholder);"/>
+        {{-- MARK: Empty state --}}
+        <div class="fi-ta-empty-state-ctn py-12 px-6">
+
+            <div class="fi-ta-empty-state mx-auto grid max-w-lg justify-items-center text-center">
+                <div class="fi-ta-empty-state-icon-ctn mb-4 rounded-full bg-gray-100/80 p-3 dark:bg-gray-800">
+                    <x-filament::icon icon="heroicon-o-clock" class="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                </div>
+
+                <h4 class="fi-ta-empty-state-heading text-base font-semibold text-gray-950 dark:text-white">
+                    No audit history found
+                </h4>
+
+                <p class="fi-ta-empty-state-description mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Changes will appear here once you edit this record.
+                </p>
             </div>
-            <p style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary);">No audit history found.</p>
-            <p style="font-size: 0.75rem; color: var(--text-muted);">Changes will appear here once you edit this record.</p>
+
         </div>
     @endforelse
+    
 </div>
